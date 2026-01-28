@@ -1,7 +1,7 @@
 /* global TrelloPowerUp */
 
-// We use this version number to force a reset of your board's data
-// so that previous tests don't interfere with this new logic.
+// version forces to reset board's data
+// pevious tests don't interfere with new logic
 const DATA_VERSION = 2; 
 
 window.TrelloPowerUp.initialize({
@@ -42,8 +42,8 @@ window.TrelloPowerUp.initialize({
              return [{ text: 'New', color: 'green' }];
           });
         } else {
-          // It's an old card -> Mark as 'Legacy' (Hidden)
-          // We save the ID so we can detect if it moves later.
+          // Old card -> 'Legacy' (Hidden)
+          // ID save detect if it moves later.
           return t.set('card', 'shared', 'listTracker', {
             listId: currentListId,
             isLegacy: true, // This flag tells us to hide the badge
@@ -57,27 +57,26 @@ window.TrelloPowerUp.initialize({
 
       // --- SCENARIO B: Card has MOVED lists ---
       if (data.listId !== currentListId) {
-        // The card moved! Doesn't matter if it was Legacy or New.
-        // We reset the timer and show the badge.
+        // If card moved! Nil if legacy or new
+        // Reset timer and show the badge.
         return t.set('card', 'shared', 'listTracker', {
           listId: currentListId,
           entryDate: now,
           version: DATA_VERSION
-          // We intentionally do NOT save 'isLegacy: true' here
         })
         .then(function() {
           return [{ text: 'Just moved', color: 'green' }];
         });
       }
 
-      // --- SCENARIO C: Card is sitting still ---
+      // --- SCENARIO C: Card sitting still ---
       
-      // If it is marked as Legacy, keep it hidden.
+      // If marked as Legacy, keep hidden.
       if (data.isLegacy) {
         return [];
       }
 
-      // Otherwise, show the timer normally.
+      // Otherwise, show timer normally.
       const msInList = now - data.entryDate;
       return [{
         text: formatTime(msInList),
