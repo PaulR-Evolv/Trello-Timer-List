@@ -1,85 +1,67 @@
 /* global TrelloPowerUp */
 
-// version forces to reset board's data
-// pevious tests don't interfere with new logic
 const DATA_VERSION = 2; 
 
 window.TrelloPowerUp.initialize({
+  // A. Add the Settings Button capability
+  'show-settings': function(t, options) {
+    return t.popup({
+      title: 'Timer Settings',
+      url: './settings.html',
+      height: 250 // Height of the popup
+    });
+  },
+
   'card-badges': function(t) {
     return Promise.all([
       t.card('idList', 'dateLastActivity'),
-      t.get('card', 'shared', 'listTracker')
+      t.get('card', 'shared', 'listTracker'),
+      t.get('board', 'shared', 'timerSettings') // B. Fetch Settings
     ])
     .then(function(results) {
       const card = results[0];
       const storedData = results[1];
+      const settings = results[2] || { warnDays: 3, alertDays: 14 }; // Default fallbacks
       const now = Date.now();
       const currentListId = card.idList;
 
-      // 1. Check if Legacy card but not moved yet?
-      // Or is it data from old tests
+      // ... [EXISTING LOGIC REMAINS THE SAME] ...
+      
       let data = storedData;
-      if (data && data.version !== DATA_VERSION) {
-        data = null; // Force reset
-      }
+      if (data && data.version !== DATA_VERSION) { data = null; }
 
-      // --- SCENARIO A: No valid data (First time seeing card) ---
+      // Scenario A: No Data
       if (!data) {
-        // Logic: Is this card BN or old?
-        // If last activity < (120000ms).
         const lastActivity = new Date(card.dateLastActivity).getTime();
         const isBrandNew = (now - lastActivity) < (2 * 60 * 1000);
 
         if (isBrandNew) {
-          // It's a new card -> Start Timer Immediately
           return t.set('card', 'shared', 'listTracker', {
-            listId: currentListId,
-            entryDate: now,
-            version: DATA_VERSION
-          })
-          .then(function() {
-             return [{ text: 'New', color: 'green' }];
-          });
+            listId: currentListId, entryDate: now, version: DATA_VERSION
+          }).then(() => [{ text: 'New', color: 'green' }]);
         } else {
-          // Old card -> 'Legacy' (Hidden)
-          // ID save detect if it moves later.
           return t.set('card', 'shared', 'listTracker', {
-            listId: currentListId,
-            isLegacy: true, // This flag tells us to hide the badge
-            version: DATA_VERSION
-          })
-          .then(function() {
-             return []; // RETURN NOTHING (Invisible)
-          });
+            listId: currentListId, isLegacy: true, version: DATA_VERSION
+          }).then(() => []);
         }
       }
 
-      // --- SCENARIO B: Card has MOVED lists ---
+      // Scenario B: Moved
       if (data.listId !== currentListId) {
-        // If card moved! Nil if legacy or new
-        // Reset timer and show the badge.
         return t.set('card', 'shared', 'listTracker', {
-          listId: currentListId,
-          entryDate: now,
-          version: DATA_VERSION
-        })
-        .then(function() {
-          return [{ text: 'Just moved', color: 'green' }];
-        });
+          listId: currentListId, entryDate: now, version: DATA_VERSION
+        }).then(() => [{ text: 'Just moved', color: 'green' }]);
       }
 
-      // --- SCENARIO C: Card sitting still ---
-      
-      // If marked as Legacy, keep hidden.
-      if (data.isLegacy) {
-        return [];
-      }
+      // Scenario C: Stationary
+      if (data.isLegacy) { return []; }
 
-      // Otherwise, show timer normally.
       const msInList = now - data.entryDate;
+      
+      // C. Pass settings to the helper function
       return [{
         text: formatTime(msInList),
-        color: getBadgeColor(msInList), 
+        color: getBadgeColor(msInList, settings), 
         refresh: 60 
       }];
     });
@@ -100,10 +82,12 @@ function formatTime(ms) {
   return 'now';
 }
 
-function getBadgeColor(ms) {
+// D. Updated to accept 'settings' object
+function getBadgeColor(ms, settings) {
   const days = ms / (1000 * 60 * 60 * 24);
   
-  if (days > 14) return 'red';    
-  if (days > 3) return 'yellow';  
-  return null; // Grey
+  // Use the user's settings instead of hardcoded 14 and 3
+  if (days > settings.alertDays) return 'red';    
+  if (days > settings.warnDays) return 'yellow';  
+  return null; 
 }
