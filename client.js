@@ -16,18 +16,17 @@ window.TrelloPowerUp.initialize({
       const now = Date.now();
       const currentListId = card.idList;
 
-      // 1. CHECK: Is this a "Legacy" card that hasn't moved yet?
-      // Or is it data from an old version of our code?
-      // If so, we treat it as having NO data.
+      // 1. Check if Legacy card but not moved yet?
+      // Or is it data from old tests
       let data = storedData;
       if (data && data.version !== DATA_VERSION) {
         data = null; // Force reset
       }
 
-      // --- SCENARIO A: No valid data (First time seeing this card) ---
+      // --- SCENARIO A: No valid data (First time seeing card) ---
       if (!data) {
-        // Logic: Is this a BRAND NEW card? Or an OLD card?
-        // We check if the last activity was within the last 2 minutes (120000ms).
+        // Logic: Is this card BN or old?
+        // If last activity < (120000ms).
         const lastActivity = new Date(card.dateLastActivity).getTime();
         const isBrandNew = (now - lastActivity) < (2 * 60 * 1000);
 
