@@ -3,21 +3,52 @@
   <head>
     <link rel="stylesheet" href="https://p.trellocdn.com/power-up.css">
     <style>
-      body { padding: 10px; }
+      body { padding: 15px; font-family: sans-serif; }
+      h2 { margin-top: 0; }
       label { display: block; margin-top: 10px; font-weight: bold; }
-      input { width: 100%; box-sizing: border-box; }
-      button { margin-top: 20px; }
+      .input-group { margin-bottom: 15px; }
+      input[type="number"] { width: 100%; box-sizing: border-box; padding: 5px; }
+      
+      /* Styling for the list of checkboxes */
+      #list-container { 
+        border: 1px solid #dfe1e6; 
+        padding: 10px; 
+        border-radius: 3px; 
+        max-height: 150px; 
+        overflow-y: auto; 
+        margin-top: 5px;
+      }
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+        font-weight: normal;
+      }
+      .checkbox-row input { width: auto; margin-right: 8px; }
+      
+      button { margin-top: 20px; width: 100%; }
     </style>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
   </head>
   <body>
     <h2>Timer Settings</h2>
     
-    <label for="warnDays">Yellow Badge (Days):</label>
-    <input type="number" id="warnDays" value="3">
+    <div class="input-group">
+      <label for="warnDays">Yellow Badge (Days):</label>
+      <input type="number" id="warnDays" value="3">
+    </div>
     
-    <label for="alertDays">Red Badge (Days):</label>
-    <input type="number" id="alertDays" value="14">
+    <div class="input-group">
+      <label for="alertDays">Red Badge (Days):</label>
+      <input type="number" id="alertDays" value="14">
+    </div>
+
+    <div class="input-group">
+      <label>Monitored Lists:</label>
+      <div id="loading">Loading lists...</div>
+      <div id="list-container" style="display:none;">
+        </div>
+    </div>
     
     <button id="save" class="mod-primary">Save Settings</button>
 
