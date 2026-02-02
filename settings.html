@@ -4,53 +4,58 @@
     <link rel="stylesheet" href="https://p.trellocdn.com/power-up.css">
     <style>
       body { padding: 15px; font-family: sans-serif; }
-      h2 { margin-top: 0; }
-      label { display: block; margin-top: 10px; font-weight: bold; }
-      .input-group { margin-bottom: 15px; }
-      input[type="number"] { width: 100%; box-sizing: border-box; padding: 5px; }
-      
-      /* Styling for the list of checkboxes */
+      h2 { margin-top: 0; margin-bottom: 10px;}
+      p { font-size: 12px; color: #6b778c; margin-bottom: 15px; }
+
+      /* The container for all lists */
       #list-container { 
         border: 1px solid #dfe1e6; 
-        padding: 10px; 
         border-radius: 3px; 
-        max-height: 150px; 
+        max-height: 400px; 
         overflow-y: auto; 
-        margin-top: 5px;
+        background: #fafbfc;
       }
-      .checkbox-row {
+
+      /* Each List Item */
+      .list-row {
+        background: white;
+        border-bottom: 1px solid #dfe1e6;
+        padding: 10px;
+      }
+      .list-header {
         display: flex;
         align-items: center;
-        margin-bottom: 5px;
-        font-weight: normal;
+        font-weight: bold;
       }
-      .checkbox-row input { width: auto; margin-right: 8px; }
+      .list-header input { margin-right: 10px; }
       
+      /* The hidden settings area for each list */
+      .list-settings {
+        display: none; /* Hidden by default */
+        margin-top: 10px;
+        padding-left: 25px; /* Indent */
+        padding-top: 10px;
+        border-top: 1px dashed #dfe1e6;
+      }
+      .list-settings.active { display: flex; gap: 10px; }
+      
+      .setting-input { display: flex; flex-direction: column; width: 48%; }
+      .setting-input label { font-size: 11px; font-weight: bold; color: #5e6c84; margin-bottom: 4px; }
+      .setting-input input { padding: 5px; border: 1px solid #dfe1e6; border-radius: 3px; }
+
       button { margin-top: 20px; width: 100%; }
     </style>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
   </head>
   <body>
-    <h2>Timer Settings</h2>
+    <h2>List Configuration</h2>
+    <p>Select lists to track and set specific thresholds for each.</p>
     
-    <div class="input-group">
-      <label for="warnDays">Yellow Badge (Days):</label>
-      <input type="number" id="warnDays" value="3">
-    </div>
+    <div id="loading">Loading lists...</div>
+    <div id="list-container" style="display:none;">
+      </div>
     
-    <div class="input-group">
-      <label for="alertDays">Red Badge (Days):</label>
-      <input type="number" id="alertDays" value="14">
-    </div>
-
-    <div class="input-group">
-      <label>Monitored Lists:</label>
-      <div id="loading">Loading lists...</div>
-      <div id="list-container" style="display:none;">
-        </div>
-    </div>
-    
-    <button id="save" class="mod-primary">Save Settings</button>
+    <button id="save" class="mod-primary">Save Configuration</button>
 
     <script src="./settings.js"></script>
   </body>
