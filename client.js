@@ -5,9 +5,9 @@ const DATA_VERSION = 2;
 window.TrelloPowerUp.initialize({
   'show-settings': function(t, options) {
     return t.popup({
-      title: 'Timer Settings',
+      title: 'List Configuration',
       url: './settings.html',
-      height: 350 // Increased height for list view
+      height: 400 // new UI
     });
   },
 
@@ -20,18 +20,24 @@ window.TrelloPowerUp.initialize({
     .then(function(results) {
       const card = results[0];
       const storedData = results[1];
-      const settings = results[2] || { warnDays: 3, alertDays: 14, activeLists: null }; 
+      const settings = results[2] || {}; // Default to empty object
       const now = Date.now();
       const currentListId = card.idList;
 
-      // --- NEW LOGIC: LIST EXCLUSION CHECK ---
-      // If activeLists exists (user saved settings) AND current list is NOT in it:
-      if (settings.activeLists && !settings.activeLists.includes(currentListId)) {
-        return []; // HIDE BADGE completely
+      // NEW LOGIC: PER-LIST CONFIG
+      
+      // Look up specific config for THIS list
+      const listConfig = settings[currentListId];
+
+      // If no config exists - assume disabled.
+      if (!listConfig) {
+        return []; // HIDE BADGE
       }
+
+      // If exists, list is enabled.
+      // We will use listConfig.warn and listConfig.alert later.
       // ----------------------------------------
 
-      // Standard logic continues...
       let data = storedData;
       if (data && data.version !== DATA_VERSION) { data = null; }
 
@@ -45,7 +51,6 @@ window.TrelloPowerUp.initialize({
             listId: currentListId, entryDate: now, version: DATA_VERSION
           }).then(() => [{ text: 'New', color: 'green' }]);
         } else {
-          // If we are in an Active List but have no data, we mark legacy
           return t.set('card', 'shared', 'listTracker', {
             listId: currentListId, isLegacy: true, version: DATA_VERSION
           }).then(() => []);
@@ -64,9 +69,10 @@ window.TrelloPowerUp.initialize({
 
       const msInList = now - data.entryDate;
       
+      // Pass SPECIFIC list config to the helper
       return [{
         text: formatTime(msInList),
-        color: getBadgeColor(msInList, settings), 
+        color: getBadgeColor(msInList, listConfig), 
         refresh: 60 
       }];
     });
@@ -87,9 +93,11 @@ function formatTime(ms) {
   return 'now';
 }
 
-function getBadgeColor(ms, settings) {
+function getBadgeColor(ms, config) {
   const days = ms / (1000 * 60 * 60 * 24);
-  if (days > settings.alertDays) return 'red';    
-  if (days > settings.warnDays) return 'yellow';  
+  
+  // Use list-specific threshold
+  if (days > config.alert) return 'red';    
+  if (days > config.warn) return 'yellow';  
   return null; 
 }
