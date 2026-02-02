@@ -3,20 +3,28 @@
   <head>
     <link rel="stylesheet" href="https://p.trellocdn.com/power-up.css">
     <style>
-      body { padding: 15px; font-family: sans-serif; }
-      h2 { margin-top: 0; margin-bottom: 10px;}
+      body { 
+        padding: 15px; 
+        font-family: sans-serif;
+        box-sizing: border-box;
+        height: 100%; /* Ensure body takes full height */
+      }
+      h2 { margin-top: 0; margin-bottom: 5px;}
       p { font-size: 12px; color: #6b778c; margin-bottom: 15px; }
 
-      /* The container for all lists */
+      /* SCROLL FIX: Set a specific height relative to the popup */
       #list-container { 
         border: 1px solid #dfe1e6; 
         border-radius: 3px; 
-        max-height: 400px; 
+        
+        /* This creates the scroll area */
+        height: 450px; 
         overflow-y: auto; 
+        
         background: #fafbfc;
+        margin-bottom: 15px;
       }
 
-      /* Each List Item */
       .list-row {
         background: white;
         border-bottom: 1px solid #dfe1e6;
@@ -29,11 +37,10 @@
       }
       .list-header input { margin-right: 10px; }
       
-      /* The hidden settings area for each list */
       .list-settings {
-        display: none; /* Hidden by default */
+        display: none; 
         margin-top: 10px;
-        padding-left: 25px; /* Indent */
+        padding-left: 25px; 
         padding-top: 10px;
         border-top: 1px dashed #dfe1e6;
       }
@@ -43,7 +50,8 @@
       .setting-input label { font-size: 11px; font-weight: bold; color: #5e6c84; margin-bottom: 4px; }
       .setting-input input { padding: 5px; border: 1px solid #dfe1e6; border-radius: 3px; }
 
-      button { margin-top: 20px; width: 100%; }
+      /* Sticky Save Button style */
+      button { width: 100%; }
     </style>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
   </head>
