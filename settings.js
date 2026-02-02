@@ -2,76 +2,109 @@
 
 var t = TrelloPowerUp.iframe();
 
-// Request Trello to give us 1. The Lists on the board, 2. The Saved Settings
 Promise.all([
   t.lists('all'),
   t.get('board', 'shared', 'timerSettings')
 ])
 .then(function(results) {
   var lists = results[0];
-  var settings = results[1];
+  var settings = results[1] || {}; // Default to empty object if new
 
-  // A. Set default inputs
-  if (settings) {
-    document.getElementById('warnDays').value = settings.warnDays;
-    document.getElementById('alertDays').value = settings.alertDays;
-  }
-
-  // B. Generate Checkboxes for Lists
   var container = document.getElementById('list-container');
   var loading = document.getElementById('loading');
-  
-  // Decide which lists are checked. 
-  // If settings.activeLists is undefined (first run), we default to ALL checked.
-  var activeLists = (settings && settings.activeLists) ? settings.activeLists : null;
 
   lists.forEach(function(list) {
-    var div = document.createElement('div');
-    div.className = 'checkbox-row';
+    // 1. Get saved config for this specific list (if any)
+    var listConfig = settings[list.id];
+    var isEnabled = listConfig ? true : false;
+    
+    // Default: Use saved values OR default to 3/14 if enabling for first time
+    var warnVal = (listConfig && listConfig.warn) ? listConfig.warn : 3;
+    var alertVal = (listConfig && listConfig.alert) ? listConfig.alert : 14;
+
+    // 2. Build HTML Row
+    var row = document.createElement('div');
+    row.className = 'list-row';
+
+    // Header (Checkbox + Name)
+    var header = document.createElement('div');
+    header.className = 'list-header';
     
     var checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
+    checkbox.id = 'cb_' + list.id;
     checkbox.value = list.id;
-    checkbox.id = 'list_' + list.id;
-    
-    // Check the box if:
-    // 1. We have no saved settings yet (default to true)
-    // 2. OR the list ID is found in the saved array
-    if (!activeLists || activeLists.includes(list.id)) {
-      checkbox.checked = true;
-    }
+    checkbox.checked = isEnabled;
 
     var label = document.createElement('label');
-    label.htmlFor = 'list_' + list.id;
+    label.htmlFor = 'cb_' + list.id;
     label.textContent = list.name;
-    label.style.marginTop = "0"; // Override default label style
 
-    div.appendChild(checkbox);
-    div.appendChild(label);
-    container.appendChild(div);
+    header.appendChild(checkbox);
+    header.appendChild(label);
+
+    // Settings Area (Inputs)
+    var settingsDiv = document.createElement('div');
+    settingsDiv.className = 'list-settings';
+    if (isEnabled) settingsDiv.classList.add('active'); // Show if already checked
+    settingsDiv.id = 'settings_' + list.id;
+
+    settingsDiv.innerHTML = `
+      <div class="setting-input">
+        <label>Yellow (Days)</label>
+        <input type="number" class="warn-input" value="${warnVal}" min="1">
+      </div>
+      <div class="setting-input">
+        <label>Red (Days)</label>
+        <input type="number" class="alert-input" value="${alertVal}" min="1">
+      </div>
+    `;
+
+    // 3. Toggle Logic: Show/Hide inputs when unchecked
+    checkbox.addEventListener('change', function() {
+      if (this.checked) {
+        settingsDiv.classList.add('active');
+      } else {
+        settingsDiv.classList.remove('active');
+      }
+    });
+
+    row.appendChild(header);
+    row.appendChild(settingsDiv);
+    container.appendChild(row);
   });
 
-  // Show the container, hide loading text
   loading.style.display = 'none';
   container.style.display = 'block';
+  
+  // Resize popup to fit content
+  t.sizeTo('#list-container').done();
 });
 
-// C. Save Logic
+// SAVE LOGIC
 document.getElementById('save').addEventListener('click', function() {
-  var warnDays = document.getElementById('warnDays').value;
-  var alertDays = document.getElementById('alertDays').value;
+  
+  var newSettings = {};
+  var rows = document.querySelectorAll('.list-row');
 
-  // Find all checked boxes
-  var checkedBoxes = document.querySelectorAll('#list-container input:checked');
-  var activeListIds = Array.from(checkedBoxes).map(function(box) {
-    return box.value;
+  rows.forEach(function(row) {
+    var checkbox = row.querySelector('input[type="checkbox"]');
+    
+    if (checkbox.checked) {
+      // Only save data if the box is checked
+      var listId = checkbox.value;
+      var warnInput = row.querySelector('.warn-input').value;
+      var alertInput = row.querySelector('.alert-input').value;
+
+      newSettings[listId] = {
+        warn: parseInt(warnInput),
+        alert: parseInt(alertInput)
+      };
+    }
   });
 
-  return t.set('board', 'shared', 'timerSettings', {
-    warnDays: parseInt(warnDays),
-    alertDays: parseInt(alertDays),
-    activeLists: activeListIds // Save the array of allowed IDs
-  })
+  // Save the Map object
+  return t.set('board', 'shared', 'timerSettings', newSettings)
   .then(function() {
     t.closePopup();
   });
