@@ -61,6 +61,9 @@ window.TrelloPowerUp.initialize({
       }];
     });
   }
+}, {
+  appKey: 'b36e4759553b9eabfac5e8241760ac4e', 
+  appName: 'Time In List'
 });
 
 function formatTime(ms) {
