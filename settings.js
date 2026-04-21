@@ -10,6 +10,7 @@ var t = TrelloPowerUp.iframe({
   appName: 'Time In List'
 });
 
+
 // --- UI RENDERING & SAVING ---
 Promise.all([
   t.lists('all'),
@@ -77,7 +78,7 @@ document.getElementById('save').addEventListener('click', function() {
 });
 
 
-// --- EXPORT TO GOOGLE SHEETS ---
+// --- EXPORT TO GOOGLE SHEETS (WITH CUSTOM FIELDS) ---
 function getDaysInList(card) {
   if (!card.pluginData || card.pluginData.length === 0) return "No Data";
   for (let i = 0; i < card.pluginData.length; i++) {
@@ -102,31 +103,61 @@ document.getElementById('exportBtn').addEventListener('click', function() {
   .then(function(token) {
     statusDiv.innerText = 'Extracting board data...';
     return t.board('id').then(function(board) {
+      
       const listUrl = `https://api.trello.com/1/boards/${board.id}/lists?key=${API_KEY}&token=${token}`;
-      const cardUrl = `https://api.trello.com/1/boards/${board.id}/cards?pluginData=true&key=${API_KEY}&token=${token}`;
+      const cardUrl = `https://api.trello.com/1/boards/${board.id}/cards?pluginData=true&customFieldItems=true&key=${API_KEY}&token=${token}`;
+      const customFieldUrl = `https://api.trello.com/1/boards/${board.id}/customFields?key=${API_KEY}&token=${token}`;
       
       return Promise.all([
         fetch(listUrl).then(r => r.json()),
-        fetch(cardUrl).then(r => r.json())
+        fetch(cardUrl).then(r => r.json()),
+        fetch(customFieldUrl).then(r => r.json()) 
       ]);
     });
   })
   .then(function(results) {
-    statusDiv.innerText = 'Beaming to Google Sheets...';
+    statusDiv.innerText = 'Translating data...';
     const lists = results[0];
     const cards = results[1];
+    const customFieldsBlueprint = results[2]; 
 
+    // Create a dictionary of List IDs to List Names
     const listMap = {};
     lists.forEach(l => listMap[l.id] = l.name);
 
+    // Create a dictionary mapping Custom Field Names to their secret IDs
+    const cfMap = {};
+    customFieldsBlueprint.forEach(cf => cfMap[cf.name] = cf.id);
+
+    // Translator Helper Function for Custom Fields
+    const getCustomField = (card, fieldName) => {
+      const fieldId = cfMap[fieldName];
+      if (!fieldId || !card.customFieldItems) return "";
+      
+      const item = card.customFieldItems.find(i => i.idCustomField === fieldId);
+      if (!item || !item.value) return "";
+      
+      if (item.value.text) return item.value.text;
+      if (item.value.number) return item.value.number;
+      if (item.value.date) return new Date(item.value.date).toLocaleDateString();
+      if (item.value.checked === 'true') return "Checked";
+      return "";
+    };
+
+    // =====================================================================
     // EXPANDABLE DATA COLUMNS
+    // =====================================================================
     const COLUMNS = [
       { header: "Card Name",           extract: card => card.name },
       { header: "Current List",        extract: card => listMap[card.idList] || "Unknown List" },
       { header: "Time in List (Days)", extract: card => getDaysInList(card) },
+      { header: "Editor",              extract: card => getCustomField(card, "Editor") },
+      { header: "Video Reviewer",      extract: card => getCustomField(card, "Video Reviewer") },
       { header: "Card Link",           extract: card => card.shortUrl }
     ];
+    // =====================================================================
 
+    statusDiv.innerText = 'Beaming to Google Sheets...';
     const headers = COLUMNS.map(col => col.header);
     const rows = cards.map(card => COLUMNS.map(col => col.extract(card) || ""));
 
