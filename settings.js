@@ -1,8 +1,8 @@
 /* global TrelloPowerUp */
 
 // 🛑 REPLACE THESE TWO VARIABLES 🛑
-const API_KEY = 'YOUR_API_KEY_HERE'; 
-const GOOGLE_WEB_APP_URL = 'YOUR_GOOGLE_WEB_APP_URL'; 
+const API_KEY = 'b36e4759553b9eabfac5e8241760ac4e'; 
+const GOOGLE_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwGOoi02DRFx2I4Lb0Bv1zU-wYUbQkFfmkrFmb15l_tb-AHK9mSuctmTP5lgkITbYwa/exec'; 
 
 // We must inject the API_KEY directly into the iframe initialization
 var t = TrelloPowerUp.iframe({
