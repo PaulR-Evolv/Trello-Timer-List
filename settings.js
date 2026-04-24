@@ -125,22 +125,30 @@ document.getElementById('exportBtn').addEventListener('click', function() {
     const listMap = {};
     lists.forEach(l => listMap[l.id] = l.name);
 
-    // Create a dictionary mapping Custom Field Names to their secret IDs
-    const cfMap = {};
-    customFieldsBlueprint.forEach(cf => cfMap[cf.name] = cf.id);
-
     // Translator Helper Function for Custom Fields
     const getCustomField = (card, fieldName) => {
-      const fieldId = cfMap[fieldName];
-      if (!fieldId || !card.customFieldItems) return "";
-      
-      const item = card.customFieldItems.find(i => i.idCustomField === fieldId);
-      if (!item || !item.value) return "";
-      
-      if (item.value.text) return item.value.text;
-      if (item.value.number) return item.value.number;
-      if (item.value.date) return new Date(item.value.date).toLocaleDateString();
-      if (item.value.checked === 'true') return "Checked";
+      // 1. Find the master blueprint for this specific field
+      const fieldBlueprint = customFieldsBlueprint.find(cf => cf.name === fieldName);
+      if (!fieldBlueprint || !card.customFieldItems) return "";
+
+      // 2. See if the card actually has data filled out for this field
+      const item = card.customFieldItems.find(i => i.idCustomField === fieldBlueprint.id);
+      if (!item) return "";
+
+      // 3. THE DROPDOWN FIX: Translate the secret Option ID into readable text
+      if (fieldBlueprint.type === "list" && item.idValue) {
+        const option = fieldBlueprint.options.find(opt => opt.id === item.idValue);
+        return option && option.value ? option.value.text : "";
+      }
+
+      // 4. Fallback for standard Text, Number, Date, or Checkbox fields
+      if (item.value) {
+        if (item.value.text) return item.value.text;
+        if (item.value.number) return item.value.number;
+        if (item.value.date) return new Date(item.value.date).toLocaleDateString();
+        if (item.value.checked === 'true' || item.value.checked === true) return "Checked";
+      }
+
       return "";
     };
 
