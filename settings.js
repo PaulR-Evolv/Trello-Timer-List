@@ -167,7 +167,12 @@ document.getElementById('exportBtn').addEventListener('click', function() {
 
     statusDiv.innerText = 'Beaming to Google Sheets...';
     const headers = COLUMNS.map(col => col.header);
-    const rows = cards.map(card => COLUMNS.map(col => col.extract(card) || ""));
+    
+    // 1. Build all the rows first
+    const allRows = cards.map(card => COLUMNS.map(col => col.extract(card) || ""));
+    
+    // 2. Filter out the junk (Index 2 is the 'Time in List' column)
+    const rows = allRows.filter(row => row[2] !== "No Data" && row[2] !== "Ignored (Legacy)");
 
     return fetch(GOOGLE_WEB_APP_URL, {
       method: 'POST',
