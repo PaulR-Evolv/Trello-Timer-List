@@ -101,9 +101,10 @@ document.getElementById('exportBtn').addEventListener('click', function() {
 
   t.getRestApi().authorize({ scope: 'read' })
   .then(function(token) {
-    statusDiv.innerText = 'Extracting board data...';
+    // 🔴 VISUAL CACHE CHECK: This text must appear when you click the button!
+    statusDiv.innerText = 'Extracting board data (Filtered Version)...';
+    
     return t.board('id').then(function(board) {
-      
       const listUrl = `https://api.trello.com/1/boards/${board.id}/lists?key=${API_KEY}&token=${token}`;
       const cardUrl = `https://api.trello.com/1/boards/${board.id}/cards?pluginData=true&customFieldItems=true&key=${API_KEY}&token=${token}`;
       const customFieldUrl = `https://api.trello.com/1/boards/${board.id}/customFields?key=${API_KEY}&token=${token}`;
@@ -127,28 +128,23 @@ document.getElementById('exportBtn').addEventListener('click', function() {
 
     // Translator Helper Function for Custom Fields
     const getCustomField = (card, fieldName) => {
-      // 1. Find the master blueprint for this specific field
       const fieldBlueprint = customFieldsBlueprint.find(cf => cf.name === fieldName);
       if (!fieldBlueprint || !card.customFieldItems) return "";
 
-      // 2. See if the card actually has data filled out for this field
       const item = card.customFieldItems.find(i => i.idCustomField === fieldBlueprint.id);
       if (!item) return "";
 
-      // 3. THE DROPDOWN FIX: Translate the secret Option ID into readable text
       if (fieldBlueprint.type === "list" && item.idValue) {
         const option = fieldBlueprint.options.find(opt => opt.id === item.idValue);
         return option && option.value ? option.value.text : "";
       }
 
-      // 4. Fallback for standard Text, Number, Date, or Checkbox fields
       if (item.value) {
         if (item.value.text) return item.value.text;
         if (item.value.number) return item.value.number;
         if (item.value.date) return new Date(item.value.date).toLocaleDateString();
         if (item.value.checked === 'true' || item.value.checked === true) return "Checked";
       }
-
       return "";
     };
 
@@ -171,8 +167,11 @@ document.getElementById('exportBtn').addEventListener('click', function() {
     // 1. Build all the rows first
     const allRows = cards.map(card => COLUMNS.map(col => col.extract(card) || ""));
     
-    // 2. Filter out the junk (Index 2 is the 'Time in List' column)
-    const rows = allRows.filter(row => row[2] !== "No Data" && row[2] !== "Ignored (Legacy)");
+    // 2. The Bulletproof Filter
+    const rows = allRows.filter(row => {
+      const timeValue = String(row[2]); // Force it to read as text just in case
+      return !timeValue.includes("No Data") && !timeValue.includes("Legacy");
+    });
 
     return fetch(GOOGLE_WEB_APP_URL, {
       method: 'POST',
