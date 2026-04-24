@@ -95,14 +95,17 @@ function getDaysInList(card) {
 }
 
 document.getElementById('exportBtn').addEventListener('click', function() {
+  
+  // 🛑 THE CACHE BREAKER: This will physically pause your screen
+  alert("SUCCESS! The new code is officially running. Click OK to filter your rows and export to Google.");
+
   var statusDiv = document.getElementById('exportStatus');
   statusDiv.style.display = 'block';
   statusDiv.innerText = 'Requesting Trello permission...';
 
   t.getRestApi().authorize({ scope: 'read' })
   .then(function(token) {
-    // 🔴 VISUAL CACHE CHECK: This text must appear when you click the button!
-    statusDiv.innerText = 'Extracting board data (Filtered Version)...';
+    statusDiv.innerText = 'Extracting board data...';
     
     return t.board('id').then(function(board) {
       const listUrl = `https://api.trello.com/1/boards/${board.id}/lists?key=${API_KEY}&token=${token}`;
@@ -122,11 +125,9 @@ document.getElementById('exportBtn').addEventListener('click', function() {
     const cards = results[1];
     const customFieldsBlueprint = results[2]; 
 
-    // Create a dictionary of List IDs to List Names
     const listMap = {};
     lists.forEach(l => listMap[l.id] = l.name);
 
-    // Translator Helper Function for Custom Fields
     const getCustomField = (card, fieldName) => {
       const fieldBlueprint = customFieldsBlueprint.find(cf => cf.name === fieldName);
       if (!fieldBlueprint || !card.customFieldItems) return "";
@@ -148,9 +149,6 @@ document.getElementById('exportBtn').addEventListener('click', function() {
       return "";
     };
 
-    // =====================================================================
-    // EXPANDABLE DATA COLUMNS
-    // =====================================================================
     const COLUMNS = [
       { header: "Card Name",           extract: card => card.name },
       { header: "Current List",        extract: card => listMap[card.idList] || "Unknown List" },
@@ -159,17 +157,16 @@ document.getElementById('exportBtn').addEventListener('click', function() {
       { header: "Video Reviewer",      extract: card => getCustomField(card, "Video Reviewer") },
       { header: "Card Link",           extract: card => card.shortUrl }
     ];
-    // =====================================================================
 
     statusDiv.innerText = 'Beaming to Google Sheets...';
     const headers = COLUMNS.map(col => col.header);
     
-    // 1. Build all the rows first
+    // Build all the rows
     const allRows = cards.map(card => COLUMNS.map(col => col.extract(card) || ""));
     
-    // 2. The Bulletproof Filter
+    // Filter the rows (drops anything with "No Data" or "Legacy")
     const rows = allRows.filter(row => {
-      const timeValue = String(row[2]); // Force it to read as text just in case
+      const timeValue = String(row[2]); 
       return !timeValue.includes("No Data") && !timeValue.includes("Legacy");
     });
 
