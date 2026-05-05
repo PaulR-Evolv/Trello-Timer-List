@@ -4,12 +4,10 @@
 const API_KEY = 'b36e4759553b9eabfac5e8241760ac4e'; 
 const GOOGLE_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwGOoi02DRFx2I4Lb0Bv1zU-wYUbQkFfmkrFmb15l_tb-AHK9mSuctmTP5lgkITbYwa/exec'; 
 
-// We must inject the API_KEY directly into the iframe initialization
 var t = TrelloPowerUp.iframe({
   appKey: API_KEY,
   appName: 'Time In List'
 });
-
 
 // --- UI RENDERING & SAVING ---
 Promise.all([
@@ -78,7 +76,7 @@ document.getElementById('save').addEventListener('click', function() {
 });
 
 
-// --- EXPORT TO GOOGLE SHEETS (WITH CUSTOM FIELDS) ---
+// --- EXPORT TO GOOGLE SHEETS (WITH CUSTOM FIELDS & NEW TIME FORMAT) ---
 function getDaysInList(card) {
   if (!card.pluginData || card.pluginData.length === 0) return "No Data";
   for (let i = 0; i < card.pluginData.length; i++) {
@@ -86,18 +84,26 @@ function getDaysInList(card) {
       let parsed = JSON.parse(card.pluginData[i].value);
       if (parsed && parsed.listTracker) {
         if (parsed.listTracker.isLegacy) return "Ignored (Legacy)";
+        
         let msInList = Date.now() - parsed.listTracker.entryDate;
-        return (msInList / (1000 * 60 * 60 * 24)).toFixed(2);
+        
+        // 🧮 THE NEW FORMATTED MATH: Translate Milliseconds to Days, Hours, Mins
+        let totalMins = Math.floor(msInList / (1000 * 60));
+        let d = Math.floor(totalMins / (24 * 60));
+        let h = Math.floor((totalMins % (24 * 60)) / 60);
+        let m = totalMins % 60;
+        
+        return `${d}d ${h}h ${m}m`;
       }
     } catch(e) { }
   }
-  return "0.00";
+  return "0d 0h 0m";
 }
 
 document.getElementById('exportBtn').addEventListener('click', function() {
   
-  // 🛑 THE CACHE BREAKER: This will physically pause your screen
-  alert("SUCCESS! The new code is officially running. Click OK to filter your rows and export to Google.");
+  // 🛑 THE CACHE BREAKER
+  alert("SUCCESS! The formatting update is live. Click OK to export.");
 
   var statusDiv = document.getElementById('exportStatus');
   statusDiv.style.display = 'block';
@@ -152,7 +158,7 @@ document.getElementById('exportBtn').addEventListener('click', function() {
     const COLUMNS = [
       { header: "Card Name",           extract: card => card.name },
       { header: "Current List",        extract: card => listMap[card.idList] || "Unknown List" },
-      { header: "Time in List (Days)", extract: card => getDaysInList(card) },
+      { header: "Time in List",        extract: card => getDaysInList(card) },
       { header: "Editor",              extract: card => getCustomField(card, "Editor") },
       { header: "Video Reviewer",      extract: card => getCustomField(card, "Video Reviewer") },
       { header: "Card Link",           extract: card => card.shortUrl }
@@ -161,10 +167,8 @@ document.getElementById('exportBtn').addEventListener('click', function() {
     statusDiv.innerText = 'Beaming to Google Sheets...';
     const headers = COLUMNS.map(col => col.header);
     
-    // Build all the rows
     const allRows = cards.map(card => COLUMNS.map(col => col.extract(card) || ""));
     
-    // Filter the rows (drops anything with "No Data" or "Legacy")
     const rows = allRows.filter(row => {
       const timeValue = String(row[2]); 
       return !timeValue.includes("No Data") && !timeValue.includes("Legacy");
