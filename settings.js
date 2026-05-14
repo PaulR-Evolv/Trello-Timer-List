@@ -1,6 +1,6 @@
 /* global TrelloPowerUp */
 
-// 🛑 REPLACE THESE TWO VARIABLES 🛑
+// 🛑 REPLACE THESE TWO VARIABLES WITH YOUR OWN 🛑
 const API_KEY = 'b36e4759553b9eabfac5e8241760ac4e'; 
 const GOOGLE_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwGOoi02DRFx2I4Lb0Bv1zU-wYUbQkFfmkrFmb15l_tb-AHK9mSuctmTP5lgkITbYwa/exec'; 
 
@@ -76,7 +76,7 @@ document.getElementById('save').addEventListener('click', function() {
 });
 
 
-// --- EXPORT TO GOOGLE SHEETS (WITH CUSTOM FIELDS & NEW TIME FORMAT) ---
+// --- EXPORT TO GOOGLE SHEETS ---
 function getDaysInList(card) {
   if (!card.pluginData || card.pluginData.length === 0) return "No Data";
   for (let i = 0; i < card.pluginData.length; i++) {
@@ -86,8 +86,6 @@ function getDaysInList(card) {
         if (parsed.listTracker.isLegacy) return "Ignored (Legacy)";
         
         let msInList = Date.now() - parsed.listTracker.entryDate;
-        
-        // 🧮 THE NEW FORMATTED MATH: Translate Milliseconds to Days, Hours, Mins
         let totalMins = Math.floor(msInList / (1000 * 60));
         let d = Math.floor(totalMins / (24 * 60));
         let h = Math.floor((totalMins % (24 * 60)) / 60);
@@ -102,8 +100,8 @@ function getDaysInList(card) {
 
 document.getElementById('exportBtn').addEventListener('click', function() {
   
-  // 🛑 THE CACHE BREAKER
-  alert("SUCCESS! The formatting update is live. Click OK to export.");
+  // 🛑 CACHE BREAKER ALERT
+  alert("SUCCESS! Dual-Export to 'Trello Lists' is active!");
 
   var statusDiv = document.getElementById('exportStatus');
   statusDiv.style.display = 'block';
@@ -133,6 +131,9 @@ document.getElementById('exportBtn').addEventListener('click', function() {
 
     const listMap = {};
     lists.forEach(l => listMap[l.id] = l.name);
+
+    // 🚨 THE TWO-COLUMN LIST GENERATOR: Creates the [1, "List A"] array!
+    const listNamesArray = lists.map((l, index) => [index + 1, l.name]);
 
     const getCustomField = (card, fieldName) => {
       const fieldBlueprint = customFieldsBlueprint.find(cf => cf.name === fieldName);
@@ -174,10 +175,11 @@ document.getElementById('exportBtn').addEventListener('click', function() {
       return !timeValue.includes("No Data") && !timeValue.includes("Legacy");
     });
 
+    // 🚨 SENDING THE DUAL-PACKAGE: Adds "trelloLists" to the end of the payload
     return fetch(GOOGLE_WEB_APP_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ headers: headers, rows: rows })
+      body: JSON.stringify({ headers: headers, rows: rows, trelloLists: listNamesArray })
     });
   })
   .then(function() {
