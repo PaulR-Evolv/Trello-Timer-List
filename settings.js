@@ -100,23 +100,23 @@ function getDaysInList(card) {
 
 document.getElementById('exportBtn').addEventListener('click', function() {
   
-  // 🛑 CACHE BREAKER ALERT
-  alert("SUCCESS! Dual-Export to 'Trello Lists' is active!");
+  alert("SUCCESS! The Multi-Board Shape-Shifter is live!");
 
   var statusDiv = document.getElementById('exportStatus');
   statusDiv.style.display = 'block';
   statusDiv.innerText = 'Requesting Trello permission...';
 
-  t.getRestApi().authorize({ scope: 'read' })
-  .then(function(token) {
+  // 🚨 NEW: Fetching both ID and NAME
+  t.board('id', 'name').then(function(board) {
     statusDiv.innerText = 'Extracting board data...';
     
-    return t.board('id').then(function(board) {
+    return t.getRestApi().authorize({ scope: 'read' }).then(function(token) {
       const listUrl = `https://api.trello.com/1/boards/${board.id}/lists?key=${API_KEY}&token=${token}`;
       const cardUrl = `https://api.trello.com/1/boards/${board.id}/cards?pluginData=true&customFieldItems=true&key=${API_KEY}&token=${token}`;
       const customFieldUrl = `https://api.trello.com/1/boards/${board.id}/customFields?key=${API_KEY}&token=${token}`;
       
       return Promise.all([
+        board.name, // Pass name into results array
         fetch(listUrl).then(r => r.json()),
         fetch(cardUrl).then(r => r.json()),
         fetch(customFieldUrl).then(r => r.json()) 
@@ -125,14 +125,14 @@ document.getElementById('exportBtn').addEventListener('click', function() {
   })
   .then(function(results) {
     statusDiv.innerText = 'Translating data...';
-    const lists = results[0];
-    const cards = results[1];
-    const customFieldsBlueprint = results[2]; 
+    const boardName = results[0]; // 🚨 Captured the Board Name
+    const lists = results[1];
+    const cards = results[2];
+    const customFieldsBlueprint = results[3]; 
 
     const listMap = {};
     lists.forEach(l => listMap[l.id] = l.name);
 
-    // 🚨 THE TWO-COLUMN LIST GENERATOR: Creates the [1, "List A"] array!
     const listNamesArray = lists.map((l, index) => [index + 1, l.name]);
 
     const getCustomField = (card, fieldName) => {
@@ -156,14 +156,28 @@ document.getElementById('exportBtn').addEventListener('click', function() {
       return "";
     };
 
-    const COLUMNS = [
-      { header: "Card Name",           extract: card => card.name },
-      { header: "Current List",        extract: card => listMap[card.idList] || "Unknown List" },
-      { header: "Time in List",        extract: card => getDaysInList(card) },
-      { header: "Editor",              extract: card => getCustomField(card, "Editor") },
-      { header: "Video Reviewer",      extract: card => getCustomField(card, "Video Reviewer") },
-      { header: "Card Link",           extract: card => card.shortUrl }
-    ];
+    // 🚨 SHAPE-SHIFTING LOGIC: Changes columns based on the board!
+    let COLUMNS = [];
+    if (boardName === "THF/TUF Collectors, Writers, Transcription") {
+      COLUMNS = [
+        { header: "Card Name",           extract: card => card.name },
+        { header: "Current List",        extract: card => listMap[card.idList] || "Unknown List" },
+        { header: "Time in List",        extract: card => getDaysInList(card) },
+        { header: "Collector",           extract: card => getCustomField(card, "Collector") },
+        { header: "Writer",              extract: card => getCustomField(card, "Writer") },
+        { header: "Transcriber",         extract: card => getCustomField(card, "Transcriber") },
+        { header: "Card Link",           extract: card => card.shortUrl }
+      ];
+    } else {
+      COLUMNS = [
+        { header: "Card Name",           extract: card => card.name },
+        { header: "Current List",        extract: card => listMap[card.idList] || "Unknown List" },
+        { header: "Time in List",        extract: card => getDaysInList(card) },
+        { header: "Editor",              extract: card => getCustomField(card, "Editor") },
+        { header: "Video Reviewer",      extract: card => getCustomField(card, "Video Reviewer") },
+        { header: "Card Link",           extract: card => card.shortUrl }
+      ];
+    }
 
     statusDiv.innerText = 'Beaming to Google Sheets...';
     const headers = COLUMNS.map(col => col.header);
@@ -175,11 +189,11 @@ document.getElementById('exportBtn').addEventListener('click', function() {
       return !timeValue.includes("No Data") && !timeValue.includes("Legacy");
     });
 
-    // 🚨 SENDING THE DUAL-PACKAGE: Adds "trelloLists" to the end of the payload
+    // 🚨 Adds boardName to payload
     return fetch(GOOGLE_WEB_APP_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ headers: headers, rows: rows, trelloLists: listNamesArray })
+      body: JSON.stringify({ headers: headers, rows: rows, trelloLists: listNamesArray, boardName: boardName })
     });
   })
   .then(function() {
